@@ -1,8 +1,8 @@
-from fastapi import FastAPI, File, UploadFile
-from pydantic import BaseModel
-import motor.motor_asyncio
+from fastapi import FastAPI, File, UploadFile, Form
 from typing import List
-from fastapi import UploadFile, File
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.responses import JSONResponse
+import motor.motor_asyncio
 import base64
 
 app = FastAPI()
@@ -36,20 +36,20 @@ async def upload_sprites(files: List[UploadFile] = File(...)):
 
 
 # Endpoint to upload audio files
-@app.post("/upload_audios")
-async def upload_audios(files: List[UploadFile] = File(...)):
+@app.post("/upload_sprites")
+async def upload_sprites(files: List[UploadFile] = File(..., media_type="multipart/form-data")):
     uploaded_ids = []
     for file in files:
         content = await file.read()
-        encoded = base64.b64encode(content).decode("utf-8")  # Convert to base64 string
+        encoded = base64.b64encode(content).decode("utf-8")
         document = {
             "name": file.filename,
             "content": encoded,
             "content_type": file.content_type
         }
-        result = await db.audio.insert_one(document)
+        result = await db.sprites.insert_one(document)
         uploaded_ids.append(str(result.inserted_id))
-    return {"message": "Audios uploaded", "ids": uploaded_ids}
+    return {"message": "Sprites uploaded", "ids": uploaded_ids}
 
 # Endpoint to submit player scores
 @app.post("/upload_scores")
