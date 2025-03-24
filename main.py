@@ -21,17 +21,22 @@ class PlayerScore(BaseModel):
 @app.post("/upload_sprites")
 async def upload_sprites(files: List[UploadFile] = File(...)):
     uploaded_ids = []
-    for file in files:
-        content = await file.read()
-        encoded = base64.b64encode(content).decode("utf-8")
-        document = {
-            "name": file.filename,
-            "content": encoded,
-            "content_type": file.content_type
-        }
-        result = await db.sprites.insert_one(document)
-        uploaded_ids.append(str(result.inserted_id))
-    return {"message": "Sprites uploaded", "ids": uploaded_ids}
+    try:
+        for file in files:
+            content = await file.read()
+            encoded = base64.b64encode(content).decode("utf-8")
+            document = {
+                "name": file.filename,
+                "content": encoded,
+                "content_type": file.content_type
+            }
+            result = await db.sprites.insert_one(document)
+            uploaded_ids.append(str(result.inserted_id))
+        return {"message": "Sprites uploaded", "ids": uploaded_ids}
+    except Exception as e:
+        print("UPLOAD_SPRITES ERROR:", e) 
+        return {"error": str(e)}
+
 
 # Endpoint to upload audio files
 @app.post("/upload_audios")
