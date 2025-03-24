@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import motor.motor_asyncio
 from typing import List
 from fastapi import UploadFile, File
+import base64
 
 app = FastAPI()
 
@@ -38,9 +39,10 @@ async def upload_audios(files: List[UploadFile] = File(...)):
     uploaded_ids = []
     for file in files:
         content = await file.read()
+        encoded = base64.b64encode(content).decode("utf-8")  # Convert to base64 string
         document = {
             "name": file.filename,
-            "content": content,
+            "content": encoded,
             "content_type": file.content_type
         }
         result = await db.audio.insert_one(document)
