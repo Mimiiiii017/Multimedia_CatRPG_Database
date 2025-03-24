@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
@@ -81,7 +82,13 @@ async def upload_audios(files: List[UploadFile] = File(...)):
 @app.post("/upload_scores")
 # Convert Pydantic models to dicts and insert all at once
 async def submit_multiple_scores(scores: List[PlayerScore]):
-    results = await db.scores.insert_many([score.dict() for score in scores])
+    clean_scores = []
+    for score in scores:
+        if not score.player_name.isalnum():  # Reject suspicious names like "$ne"
+            raise HTTPException(status_code=400, detail="Invalid player name.")
+        clean_scores.append(score.dict())
+    
+    results = await db.scores.insert_many(clean_scores)
     return {"message": "Multiple scores submitted", "ids": [str(id) for id in results.inserted_ids]}
 
 
