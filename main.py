@@ -2,7 +2,6 @@ from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 import motor.motor_asyncio
 from typing import List
-from fastapi import UploadFile, File
 import base64
 
 app = FastAPI()
@@ -20,7 +19,7 @@ class PlayerScore(BaseModel):
 
 # Endpoint to upload sprite images
 @app.post("/upload_sprites")
-async def upload_sprites(files: List[UploadFile] = File(..., media_type="multipart/form-data")):
+async def upload_sprites(files: List[UploadFile] = File(...)):
     uploaded_ids = []
     for file in files:
         content = await file.read()
