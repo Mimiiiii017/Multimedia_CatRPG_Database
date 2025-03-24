@@ -1,9 +1,10 @@
+import base64
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 import motor.motor_asyncio
 from typing import List
 from fastapi import UploadFile, File
-import base64
+
 
 app = FastAPI()
 
@@ -23,6 +24,7 @@ class PlayerScore(BaseModel):
 async def upload_sprites(files: List[UploadFile] = File(...)):
     uploaded_ids = []
     for file in files:
+        encoded = base64.b64encode(content).decode("utf-8")  # Convert to base64 string
         content = await file.read()
         document = {
             "name": file.filename,
