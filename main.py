@@ -1,3 +1,6 @@
+import asyncio
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 import motor.motor_asyncio
