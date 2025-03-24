@@ -1,8 +1,9 @@
 from fastapi import FastAPI, File, UploadFile, Form
-from typing import List
-from fastapi import FastAPI, File, UploadFile, Form
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import motor.motor_asyncio
+from typing import List
+from fastapi import UploadFile, File
+from fastapi.responses import JSONResponse
 import base64
 
 app = FastAPI()
