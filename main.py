@@ -1,5 +1,3 @@
-import asyncio
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
@@ -23,8 +21,8 @@ class PlayerScore(BaseModel):
 # Endpoint to upload sprite images
 @app.post("/upload_sprites")
 async def upload_sprites(files: List[UploadFile] = File(...)):
+    uploaded_ids = []
     try:
-        uploaded_ids = []
         for file in files:
             content = await file.read()
             encoded = base64.b64encode(content).decode("utf-8")
@@ -37,8 +35,8 @@ async def upload_sprites(files: List[UploadFile] = File(...)):
             uploaded_ids.append(str(result.inserted_id))
         return {"message": "Sprites uploaded", "ids": uploaded_ids}
     except Exception as e:
+        print("UPLOAD_SPRITES ERROR:", e) 
         return {"error": str(e)}
-
 
 
 # Endpoint to upload audio files
