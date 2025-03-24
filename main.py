@@ -1,9 +1,8 @@
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 import motor.motor_asyncio
 from typing import List
 from fastapi import UploadFile, File
-from fastapi.responses import JSONResponse
 import base64
 
 app = FastAPI()
@@ -21,23 +20,6 @@ class PlayerScore(BaseModel):
 
 # Endpoint to upload sprite images
 @app.post("/upload_sprites")
-async def upload_sprites(files: List[UploadFile] = File(...)):
-    uploaded_ids = []
-    for file in files:
-        content = await file.read()
-        encoded = base64.b64encode(content).decode("utf-8")  # Convert to base64 string
-        document = {
-            "name": file.filename,
-            "content": encoded,
-            "content_type": file.content_type
-        }
-        result = await db.sprites.insert_one(document)
-        uploaded_ids.append(str(result.inserted_id))
-    return {"message": "Sprites uploaded", "ids": uploaded_ids}
-
-
-# Endpoint to upload audio files
-@app.post("/upload_sprites")
 async def upload_sprites(files: List[UploadFile] = File(..., media_type="multipart/form-data")):
     uploaded_ids = []
     for file in files:
@@ -51,6 +33,22 @@ async def upload_sprites(files: List[UploadFile] = File(..., media_type="multipa
         result = await db.sprites.insert_one(document)
         uploaded_ids.append(str(result.inserted_id))
     return {"message": "Sprites uploaded", "ids": uploaded_ids}
+
+# Endpoint to upload audio files
+@app.post("/upload_audios")
+async def upload_audios(files: List[UploadFile] = File(...)):
+    uploaded_ids = []
+    for file in files:
+        content = await file.read()
+        encoded = base64.b64encode(content).decode("utf-8")  # Convert to base64 string
+        document = {
+            "name": file.filename,
+            "content": encoded,
+            "content_type": file.content_type
+        }
+        result = await db.audio.insert_one(document)
+        uploaded_ids.append(str(result.inserted_id))
+    return {"message": "Audios uploaded", "ids": uploaded_ids}
 
 # Endpoint to submit player scores
 @app.post("/upload_scores")
