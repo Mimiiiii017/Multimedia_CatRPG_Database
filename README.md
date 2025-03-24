@@ -88,8 +88,54 @@ All endpoints return JSON responses with confirmation messages and inserted Mong
 - Method: POST
 - URL: `http://127.0.0.1:8000/upload_scores`
 - Body: `raw` → `JSON`
-```json
 [
   { "player_name": "John", "score": 4500 },
   { "player_name": "Jane", "score": 3900 }
 ]
+
+### Retrieving Sprites
+- Method: GET
+- URL: `http://127.0.0.1:8000/sprites`
+- Description: Returns all uploaded sprite images as base64 strings
+
+### Retrieving Audio Files
+- Method: GET
+- URL: `http://127.0.0.1:8000/audios`
+- Description: Returns all uploaded audio files as base64 strings
+
+### Retrieving Scores
+- Method: GET
+- URL: `http://127.0.0.1:8000/scores`
+- Description: Returns all submitted player scores
+
+
+## Security Features
+
+### a) Credential Security
+- Created a dedicated database user `catdatabase` with **only read/write access**
+- Did not use the admin account
+- Connection string can be stored securely in `.env` (via `python-dotenv`)
+
+### b) IP Whitelisting
+- Restricted access to only **Vercel server IP addresses** and **my home IP**
+- Blocked access from public/untrusted addresses
+
+### c) NoSQL Injection Prevention
+- Used **Pydantic** models to strictly validate user input
+- Added optional regex and type checks (e.g., `^[a-zA-Z0-9_]+$`)
+- Never constructed queries using raw user input
+- Example protection:
+
+class PlayerScore(BaseModel):
+    player_name: str = Field(..., pattern="^[a-zA-Z0-9_]+$")
+    score: int = Field(..., ge=0, le=10000)
+
+
+
+## Deployment
+
+I deployed the FastAPI app to [Vercel](https://multimedia-cat-rpg-databas-git-1f6bf5-mireyas-projects-4f331778.vercel.app/docs) using the `vercel.json` setup.  
+
+And tested it in Postman using:
+- `GET https://multimedia-cat-rpg-database.vercel.app/sprites`
+- `POST https://multimedia-cat-rpg-database.vercel.app/upload_scores`
