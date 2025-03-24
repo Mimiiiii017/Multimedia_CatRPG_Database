@@ -1,4 +1,4 @@
-
+from fastapi.responses import JSONResponse
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 import motor.motor_asyncio
@@ -60,3 +60,34 @@ async def upload_audios(files: List[UploadFile] = File(...)):
 async def submit_multiple_scores(scores: List[PlayerScore]):
     results = await db.scores.insert_many([score.dict() for score in scores])
     return {"message": "Multiple scores submitted", "ids": [str(id) for id in results.inserted_ids]}
+
+
+# Get all sprites
+@app.get("/sprites")
+async def get_sprites():
+    sprites = []
+    cursor = db.sprites.find()
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])  # Convert ObjectId to string
+        sprites.append(doc)
+    return sprites
+
+# Get all audio files
+@app.get("/audios")
+async def get_audios():
+    audios = []
+    cursor = db.audio.find()
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        audios.append(doc)
+    return audios
+
+# Get all player scores
+@app.get("/scores")
+async def get_scores():
+    scores = []
+    cursor = db.scores.find()
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        scores.append(doc)
+    return scores
