@@ -1,6 +1,6 @@
 from http.client import HTTPException
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Depends
 from pydantic import BaseModel
 import motor.motor_asyncio
 from typing import List
@@ -10,10 +10,13 @@ app = FastAPI()
 
 # Connect to MongoDB Atlas(replace URI with your actual connection string)
 # This connects to the cloud MongoDB database where sprites, audios, and scores will be stored
-client = motor.motor_asyncio.AsyncIOMotorClient(
-    "mongodb+srv://Mireya:catdatabase@catgame.ljubd.mongodb.net/?retryWrites=true&w=majority&appName=CatGame"
-)
-db = client.catgame_db
+# Dependency to get a fresh DB connection per request
+async def get_db():
+    client = motor.motor_asyncio.AsyncIOMotorClient(
+        "mongodb+srv://Mireya:catdatabase@catgame.ljubd.mongodb.net/?retryWrites=true&w=majority&appName=CatGame"
+    )
+    return client.catgame_db
+
 
 # Pydantic model for score submissions
 # This ensures any JSON input for scores follows this structure:
@@ -97,18 +100,19 @@ async def submit_multiple_scores(scores: List[PlayerScore]):
 # Get all sprites
 # Retrieves all sprite documents from the database.
 @app.get("/sprites")
-async def get_sprites():
+async def get_sprites(db=Depends(get_db)):
     sprites = []
-    cursor = db.sprites.find() # Get all documents in 'sprites'
+    cursor = db.sprites.find()
     async for doc in cursor:
-        doc["_id"] = str(doc["_id"])  # Convert ObjectId to string
+        doc["_id"] = str(doc["_id"])
         sprites.append(doc)
     return sprites
+
 
 # Get all audio files
 # Retrieves all audio documents from the database.
 @app.get("/audios")
-async def get_audios():
+async def get_audios(db=Depends(get_db)):
     audios = []
     cursor = db.audio.find()
     async for doc in cursor:
@@ -119,7 +123,7 @@ async def get_audios():
 # Get all player scores
 # Retrieves all player scores from the 'scores' collection.
 @app.get("/scores")
-async def get_scores():
+async def get_scores(db=Depends(get_db)):
     scores = []
     cursor = db.scores.find()
     async for doc in cursor:
