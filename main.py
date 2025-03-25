@@ -1,56 +1,51 @@
-from http.client import HTTPException
+from http.client import HTTPException # Used for raising HTTP error responses
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI, File, UploadFile, Depends
-from pydantic import BaseModel
-import motor.motor_asyncio
+from fastapi import FastAPI, File, UploadFile, Depends # Core FastAPI modules
+from pydantic import BaseModel # For input validation using data models
+import motor.motor_asyncio # Async MongoDB driver
 from typing import List
 import base64 # Used to encode binary data into base64 strings
 
+# Initialize the FastAPI app
 app = FastAPI()
 
-# Connect to MongoDB Atlas(replace URI with your actual connection string)
-# This connects to the cloud MongoDB database where sprites, audios, and scores will be stored
-# Dependency to get a fresh DB connection per request
+# Database connection setup
+# This function creates a fresh connection to MongoDB Atlas each time it's called.
+# It's used with FastAPI's 'Depends' feature to avoid connection timeout issues on Vercel.
 async def get_db():
     client = motor.motor_asyncio.AsyncIOMotorClient(
         "mongodb+srv://Mireya:catdatabase@catgame.ljubd.mongodb.net/?retryWrites=true&w=majority&appName=CatGame"
     )
     return client.catgame_db
 
+# Define the expected format for player scores using Pydantic.
+# This ensures incoming POST data is validated for structure and type.
+class PlayerScore(BaseModel): 
+    player_name: str # Must be a string (e.g., "Alice")
+    score: int # Must be an integer (e.g., 4000)
 
-# Pydantic model for score submissions
-# This ensures any JSON input for scores follows this structure:
-# {
-#   "player_name": "Alice",
-#   "score": 1234
-# }
-class PlayerScore(BaseModel):
-    player_name: str
-    score: int
 
-# Endpoint to upload sprite images
-    ## Upload multiple sprite images to the database.
-    ## Each file is:
-    ##  - Read asynchronously
-    ##  - Encoded in base64 format
-    ##  - Stored in the 'sprites' collection with metadata
-    ## Returns a list of inserted document IDs.
+# ----------------------------- UPLOAD ROUTES -----------------------------
+
+
+# Upload one or more sprite images.
+# Each file is read as binary, encoded to base64, and stored in MongoDB with metadata.
 @app.post("/upload_sprites")
 async def upload_sprites(files: List[UploadFile] = File(...), db=Depends(get_db)):
-    uploaded_ids = [] # Will hold MongoDB document IDs
+    uploaded_ids = [] # Will store MongoDB document IDs of inserted sprites
     try:
         for file in files:
-            content = await file.read() # Read the binary content of the file
+            content = await file.read() # Read file content asynchronously
             encoded = base64.b64encode(content).decode("utf-8") # Convert to base64 string
             # Create a document to store
             document = {
                 "name": file.filename,
                 "content": encoded,
-                "content_type": file.content_type
+                "content_type": file.content_type # e.g., image/png
             }
-             # Insert the document into the 'sprites' collection
+             # Insert the document into the 'sprites' collection in MongoDB
             result = await db.sprites.insert_one(document)
-            uploaded_ids.append(str(result.inserted_id))  # Store the ID of the inserted doc
+            uploaded_ids.append(str(result.inserted_id))  # Store the generated ObjectId
         return {"message": "Sprites uploaded", "ids": uploaded_ids}
     except Exception as e:
         # If something goes wrong, print and return the error
@@ -58,73 +53,76 @@ async def upload_sprites(files: List[UploadFile] = File(...), db=Depends(get_db)
         return {"error": str(e)}
 
 
-# Endpoint to upload audio files
-    ## Upload multiple audio files to the database.
-    ## Each file is base64 encoded and saved to the 'audio' collection.
-
-    ## Returns a list of inserted document IDs.
+# Upload one or more audio files (e.g., MP3s).
+# Audio is stored in base64 format in the 'audio' collection.
 @app.post("/upload_audios")
 async def upload_audios(files: List[UploadFile] = File(...), db=Depends(get_db)):
     uploaded_ids = []
     for file in files:
-        content = await file.read() # Read file as binary
+        content = await file.read() # Read file content asynchronously
         encoded = base64.b64encode(content).decode("utf-8")  # Convert to base64 string
         document = {
             "name": file.filename,
             "content": encoded,
-            "content_type": file.content_type
+            "content_type": file.content_type # e.g., audio/mpeg
         }
         result = await db.audio.insert_one(document)
         uploaded_ids.append(str(result.inserted_id)) # Store the ID of the inserted doc
     return {"message": "Audios uploaded", "ids": uploaded_ids}
 
 
-# Endpoint to submit player scores
-# Accepts a list of player scores in JSON format and stores them in the 'scores' collection.
+# Upload one or more player scores in JSON format.
+# Example:
+# [
+#   { "player_name": "Alice", "score": 3000 },
+#   { "player_name": "Bob", "score": 4500 }
+# ]
 @app.post("/upload_scores")
-# Convert Pydantic models to dicts and insert all at once
 async def submit_multiple_scores(scores: List[PlayerScore], db=Depends(get_db)):
+    # Basic sanitization: prevent NoSQL injection by disallowing special characters
     clean_scores = []
     for score in scores:
         if not score.player_name.isalnum():  # Reject suspicious names like "$ne"
             raise HTTPException(status_code=400, detail="Invalid player name.")
         clean_scores.append(score.dict())
     
+    # Insert all valid scores into the 'scores' collection
     results = await db.scores.insert_many(clean_scores)
     return {"message": "Multiple scores submitted", "ids": [str(id) for id in results.inserted_ids]}
 
 
+# ----------------------------- RETRIEVAL ROUTES -----------------------------
 
 
-# Get all sprites
-# Retrieves all sprite documents from the database.
+# Retrieve all sprite records from MongoDB.
+# Returns a list of image names and base64 content.
 @app.get("/sprites")
 async def get_sprites(db=Depends(get_db)):
     sprites = []
-    cursor = db.sprites.find()
+    cursor = db.sprites.find() # Query all documents in the 'sprites' collection
     async for doc in cursor:
-        doc["_id"] = str(doc["_id"])
+        doc["_id"] = str(doc["_id"])  # Convert ObjectId to string so it can be serialized in JSON
         sprites.append(doc)
     return sprites
 
 
-# Get all audio files
-# Retrieves all audio documents from the database.
+# Retrieve all uploaded audio files.
+# Each entry contains the filename, content type, and base64 audio data.
 @app.get("/audios")
 async def get_audios(db=Depends(get_db)):
     audios = []
-    cursor = db.audio.find()
+    cursor = db.audio.find() # Query all documents in the 'audios' collection
     async for doc in cursor:
-        doc["_id"] = str(doc["_id"]) # Convert ObjectId for frontend use
+        doc["_id"] = str(doc["_id"])  # Convert ObjectId to string so it can be serialized in JSON
         audios.append(doc)
     return audios
 
-# Get all player scores
-# Retrieves all player scores from the 'scores' collection.
+# Retrieve all player scores.
+# Returns each score with player name and score value.
 @app.get("/scores")
 async def get_scores(db=Depends(get_db)):
     scores = []
-    cursor = db.scores.find()
+    cursor = db.scores.find() # Query all documents in the 'scores' collection
     async for doc in cursor:
         doc["_id"] = str(doc["_id"]) # Convert ObjectId
         scores.append(doc)
