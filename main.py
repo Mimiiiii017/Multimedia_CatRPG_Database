@@ -36,8 +36,7 @@ class PlayerScore(BaseModel):
     ##  - Stored in the 'sprites' collection with metadata
     ## Returns a list of inserted document IDs.
 @app.post("/upload_sprites")
-async def upload_sprites(files: List[UploadFile] = File(...)):
-    
+async def upload_sprites(files: List[UploadFile] = File(...), db=Depends(get_db)):
     uploaded_ids = [] # Will hold MongoDB document IDs
     try:
         for file in files:
@@ -65,7 +64,7 @@ async def upload_sprites(files: List[UploadFile] = File(...)):
 
     ## Returns a list of inserted document IDs.
 @app.post("/upload_audios")
-async def upload_audios(files: List[UploadFile] = File(...)):
+async def upload_audios(files: List[UploadFile] = File(...), db=Depends(get_db)):
     uploaded_ids = []
     for file in files:
         content = await file.read() # Read file as binary
@@ -84,7 +83,7 @@ async def upload_audios(files: List[UploadFile] = File(...)):
 # Accepts a list of player scores in JSON format and stores them in the 'scores' collection.
 @app.post("/upload_scores")
 # Convert Pydantic models to dicts and insert all at once
-async def submit_multiple_scores(scores: List[PlayerScore]):
+async def submit_multiple_scores(scores: List[PlayerScore], db=Depends(get_db)):
     clean_scores = []
     for score in scores:
         if not score.player_name.isalnum():  # Reject suspicious names like "$ne"
