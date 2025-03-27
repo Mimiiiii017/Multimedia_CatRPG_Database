@@ -1,4 +1,4 @@
-from http.client import HTTPException # Used for raising HTTP error responses
+from fastapi import HTTPException # Used for raising HTTP error responses
 import os 
 from fastapi.responses import JSONResponse # Allows custom response formatting (not directly used here)
 from fastapi import FastAPI, File, UploadFile, Depends # Core FastAPI modules
@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 app = FastAPI()
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(dotenv_path=".env")  # Explicit path
 
 # ----------------------------- MONGO DB CONNECTION -----------------------------
 
@@ -143,3 +143,11 @@ async def get_scores(db=Depends(get_db)):
         doc["_id"] = str(doc["_id"]) # Convert ObjectId
         scores.append(doc)
     return scores
+
+@app.get("/ping")
+async def ping(db=Depends(get_db)):
+    try:
+        await db.command("ping")
+        return {"message": "Connected to MongoDB!"}
+    except Exception as e:
+        return {"error": str(e)}
