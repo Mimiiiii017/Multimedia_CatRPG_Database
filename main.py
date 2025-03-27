@@ -19,6 +19,8 @@ load_dotenv(dotenv_path=".env")  # Explicit path
 
 # Use environment variable for MongoDB connection string
 MONGODB_URL = os.getenv("MONGODB_URL")
+print("DEBUG MONGODB_URL:", MONGODB_URL)
+
 
 # Dependency function to connect to MongoDB using secure .env config
 async def get_db():
@@ -143,6 +145,13 @@ async def get_scores(db=Depends(get_db)):
         doc["_id"] = str(doc["_id"]) # Convert ObjectId
         scores.append(doc)
     return scores
+
+
+
+@app.get("/")
+def root():
+    return {"message": "FastAPI is running on Vercel!"}
+
 
 @app.get("/ping")
 async def ping(db=Depends(get_db)):
