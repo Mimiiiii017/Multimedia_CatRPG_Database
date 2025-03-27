@@ -1,25 +1,28 @@
 from http.client import HTTPException # Used for raising HTTP error responses
+import os 
 from fastapi.responses import JSONResponse # Allows custom response formatting (not directly used here)
 from fastapi import FastAPI, File, UploadFile, Depends # Core FastAPI modules
 from pydantic import BaseModel # For input validation using data models
 import motor.motor_asyncio # Async MongoDB client for interacting with MongoDB Atlas
 from typing import List  # Allows defining endpoints that accept a list of inputs
 import base64 # Used to convert binary files to base64 strings for safe storage in MongoDB
+from dotenv import load_dotenv
 
 # Initialize the FastAPI app
 app = FastAPI()
 
+# Load environment variables from .env file
+load_dotenv()
 
 # ----------------------------- MONGO DB CONNECTION -----------------------------
 
 
-# Dependency function that returns a connection to the MongoDB Atlas database.
-# This is injected into endpoints using FastAPI's Depends system.
-# Helps avoid long-lived connections (important for serverless environments like Vercel).
+# Use environment variable for MongoDB connection string
+MONGODB_URL = os.getenv("MONGODB_URL")
+
+# Dependency function to connect to MongoDB using secure .env config
 async def get_db():
-    client = motor.motor_asyncio.AsyncIOMotorClient(
-        "mongodb+srv://Mireya:catdatabase@catgame.ljubd.mongodb.net/?retryWrites=true&w=majority&appName=CatGame"
-    )
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
     return client.catgame_db
 
 # Define the expected format for player scores using Pydantic.
