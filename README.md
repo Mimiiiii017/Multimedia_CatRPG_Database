@@ -2,6 +2,9 @@
 
 This project is a FastAPI-based RESTful API for uploading and storing multimedia game assets (sprites, audio files, and player scores) in a MongoDB Atlas database. Developed as part of the Database Essentials unit at MCAST.
 
+-------------
+## Task 1
+
 
 ## Technologies Used
 - **Python 3.11**
@@ -16,7 +19,6 @@ This project is a FastAPI-based RESTful API for uploading and storing multimedia
 - **MongoDB Atlas** – Cloud NoSQL database
 - **Postman** – For testing your API
 - **VS Code** – Development environment
-
 
 
 ## How I set up the environment
@@ -46,6 +48,34 @@ pip freeze > requirements.txt
 ### 6. Created My Main File
 main.py – where all the FastAPI endpoints are
 
+-------------
+## Task 2
+
+
+## Schema Design
+
+I designed the MongoDB schema for the catgame_db using MongoDB Compass, creating three key collections to store multimedia game assets:
+
+•	sprites – Stores game character images in Base64 format
+•	audio – Stores sound effects and music clips (e.g. "Victory", "Death", etc.)
+•	scores – Stores player name and score data
+
+Each document includes relevant fields such as name, content, and content_type. Sprite and audio files use a data:image/png;base64,... or data:audio/mp3;base64,... structure for the content field.
+I used Mongo Compass’s document view to visually confirm and validate the structure of the inserted documents across all collections.
+
+## Schema Deployment 
+
+I deployed the schema on MongoDB Atlas, creating a Free-tier cluster named CatGame. Then I created a database named catgame_db and manually added collections for sprites, audio, and scores.
+I populated these collections with mock data using both MongoDB Compass and the MongoDB Atlas UI:
+
+•	Inserted several Base64-encoded PNG sprites (e.g., “Black Idle”, “Brown Jump”)
+•	Uploaded multiple MP3 audio files with metadata (e.g., "Victory.mp3", "Death.mp3")
+•	Added sample player scores (e.g., "John Doe", score: 1500)
+
+Authentication was configured using a secure database user with admin privileges during testing. All collections were successfully deployed and populated as shown in the provided screenshots.
+
+-------------
+## Task 3
 
 
 ## Running the API Locally
@@ -67,8 +97,7 @@ API Endpoints
 All endpoints return JSON responses with confirmation messages and inserted MongoDB IDs.
 
 
-
-## 🧪 Testing with Postman
+## Testing with Postman
 
 ### Uploading Sprites (Multiple):
 - Method: POST
@@ -108,6 +137,18 @@ All endpoints return JSON responses with confirmation messages and inserted Mong
 - URL: `http://127.0.0.1:8000/scores`
 - Description: Returns all submitted player scores
 
+## Running the API on Vercel
+## Deployment
+
+I deployed the FastAPI app to [Vercel](https://multimedia-cat-rpg-databas-git-1f6bf5-mireyas-projects-4f331778.vercel.app/docs) using the `vercel.json` setup.  
+
+And tested it in Postman using:
+- `GET https://multimedia-cat-rpg-database.vercel.app/sprites`
+- `POST https://multimedia-cat-rpg-database.vercel.app/upload_scores`
+
+-------------
+## Task 4
+
 
 ## Security Features
 
@@ -129,13 +170,3 @@ All endpoints return JSON responses with confirmation messages and inserted Mong
 class PlayerScore(BaseModel):
     player_name: str = Field(..., pattern="^[a-zA-Z0-9_]+$")
     score: int = Field(..., ge=0, le=10000)
-
-
-
-## Deployment
-
-I deployed the FastAPI app to [Vercel](https://multimedia-cat-rpg-databas-git-1f6bf5-mireyas-projects-4f331778.vercel.app/docs) using the `vercel.json` setup.  
-
-And tested it in Postman using:
-- `GET https://multimedia-cat-rpg-database.vercel.app/sprites`
-- `POST https://multimedia-cat-rpg-database.vercel.app/upload_scores`

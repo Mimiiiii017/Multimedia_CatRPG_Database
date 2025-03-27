@@ -1,17 +1,21 @@
 from http.client import HTTPException # Used for raising HTTP error responses
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse # Allows custom response formatting (not directly used here)
 from fastapi import FastAPI, File, UploadFile, Depends # Core FastAPI modules
 from pydantic import BaseModel # For input validation using data models
-import motor.motor_asyncio # Async MongoDB driver
-from typing import List
-import base64 # Used to encode binary data into base64 strings
+import motor.motor_asyncio # Async MongoDB client for interacting with MongoDB Atlas
+from typing import List  # Allows defining endpoints that accept a list of inputs
+import base64 # Used to convert binary files to base64 strings for safe storage in MongoDB
 
 # Initialize the FastAPI app
 app = FastAPI()
 
-# Database connection setup
-# This function creates a fresh connection to MongoDB Atlas each time it's called.
-# It's used with FastAPI's 'Depends' feature to avoid connection timeout issues on Vercel.
+
+# ----------------------------- MONGO DB CONNECTION -----------------------------
+
+
+# Dependency function that returns a connection to the MongoDB Atlas database.
+# This is injected into endpoints using FastAPI's Depends system.
+# Helps avoid long-lived connections (important for serverless environments like Vercel).
 async def get_db():
     client = motor.motor_asyncio.AsyncIOMotorClient(
         "mongodb+srv://Mireya:catdatabase@catgame.ljubd.mongodb.net/?retryWrites=true&w=majority&appName=CatGame"
@@ -28,11 +32,13 @@ class PlayerScore(BaseModel):
 # ----------------------------- UPLOAD ROUTES -----------------------------
 
 
-# Upload one or more sprite images.
-# Each file is read as binary, encoded to base64, and stored in MongoDB with metadata.
+# Endpoint: Upload one or more sprite images
+# Method: POST
+# Route: /upload_sprites
+# Accepts multiple image files via form-data, encodes them in base64, and stores them in MongoDB
 @app.post("/upload_sprites")
 async def upload_sprites(files: List[UploadFile] = File(...), db=Depends(get_db)):
-    uploaded_ids = [] # Will store MongoDB document IDs of inserted sprites
+    uploaded_ids = [] # Store MongoDB document IDs of inserted sprites
     try:
         for file in files:
             content = await file.read() # Read file content asynchronously
@@ -53,8 +59,10 @@ async def upload_sprites(files: List[UploadFile] = File(...), db=Depends(get_db)
         return {"error": str(e)}
 
 
-# Upload one or more audio files (e.g., MP3s).
-# Audio is stored in base64 format in the 'audio' collection.
+# Endpoint: Upload one or more audio files
+# Method: POST
+# Route: /upload_audios
+# Encodes MP3 files in base64 and stores them in MongoDB
 @app.post("/upload_audios")
 async def upload_audios(files: List[UploadFile] = File(...), db=Depends(get_db)):
     uploaded_ids = []
@@ -71,12 +79,11 @@ async def upload_audios(files: List[UploadFile] = File(...), db=Depends(get_db))
     return {"message": "Audios uploaded", "ids": uploaded_ids}
 
 
-# Upload one or more player scores in JSON format.
-# Example:
-# [
-#   { "player_name": "Alice", "score": 3000 },
-#   { "player_name": "Bob", "score": 4500 }
-# ]
+# Endpoint: Upload multiple player scores
+# Method: POST
+# Route: /upload_scores
+# Accepts a list of JSON objects like: [{"player_name": "Alice", "score": 5000}, ...]
+# Validates and inserts them into the 'scores' collection
 @app.post("/upload_scores")
 async def submit_multiple_scores(scores: List[PlayerScore], db=Depends(get_db)):
     # Basic sanitization: prevent NoSQL injection by disallowing special characters
@@ -94,8 +101,10 @@ async def submit_multiple_scores(scores: List[PlayerScore], db=Depends(get_db)):
 # ----------------------------- RETRIEVAL ROUTES -----------------------------
 
 
-# Retrieve all sprite records from MongoDB.
-# Returns a list of image names and base64 content.
+# Endpoint: Retrieve all sprite images
+# Method: GET
+# Route: /sprites
+# Returns a list of documents containing name, content (base64), and content_type
 @app.get("/sprites")
 async def get_sprites(db=Depends(get_db)):
     sprites = []
@@ -106,8 +115,10 @@ async def get_sprites(db=Depends(get_db)):
     return sprites
 
 
-# Retrieve all uploaded audio files.
-# Each entry contains the filename, content type, and base64 audio data.
+# Endpoint: Retrieve all audio files
+# Method: GET
+# Route: /audios
+# Returns list of audio records with base64-encoded data
 @app.get("/audios")
 async def get_audios(db=Depends(get_db)):
     audios = []
@@ -117,8 +128,10 @@ async def get_audios(db=Depends(get_db)):
         audios.append(doc)
     return audios
 
-# Retrieve all player scores.
-# Returns each score with player name and score value.
+# Endpoint: Retrieve all player scores
+# Method: GET
+# Route: /scores
+# Returns documents with player_name and score values
 @app.get("/scores")
 async def get_scores(db=Depends(get_db)):
     scores = []
