@@ -148,6 +148,9 @@ async def get_scores(db=Depends(get_db)):
 
 
 
+# ----------------------------- TESTS TO CHECK MY CONNECTION -----------------------------
+
+
 @app.get("/")
 def root():
     return {"message": "FastAPI is running on Vercel!"}
