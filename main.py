@@ -15,15 +15,17 @@ app = FastAPI()
 # Load environment variables from .env file
 load_dotenv(dotenv_path=".env")  # Explicit path
 
-# --- Helper for score sanitization ---
+# Function: Sanitize score update data
+# Purpose: Prevent NoSQL injection by rejecting keys or values with dangerous characters like $, {, or .
 def sanitize_score_update(data: dict) -> dict:
     for key in data:
         if "$" in key or "." in key:
-            return None
+            return None  # Reject dangerous field names
         value = data[key]
         if isinstance(value, str) and ("$" in value or "{" in value or "}" in value):
-            return None
-    return data
+            return None  # Reject suspicious string values
+    return data  # Return sanitized data if clean
+
 
 # ----------------------------- MONGO DB CONNECTION -----------------------------
 
@@ -161,18 +163,29 @@ async def get_scores(db=Depends(get_db)):
 
 # ----------------------------- UPDATE ROUTES -----------------------------
 
+
+# Endpoint: Update a specific sprite document by ID
+# Method: PUT
+# Route: /sprites/{sprite_id}
+# Accepts JSON with updated fields (e.g., name, content), and updates the sprite in MongoDB
 @app.put("/sprites/{sprite_id}")
 async def update_sprite(sprite_id: str, updated_data: dict, db=Depends(get_db)):
     await db.sprites.update_one({"_id": ObjectId(sprite_id)}, {"$set": updated_data})
     return {"message": "Sprite updated"}
 
-
+# Endpoint: Update a specific audio document by ID
+# Method: PUT
+# Route: /audios/{audio_id}
+# Accepts JSON with updated fields (e.g., name, content), and updates the audio in MongoDB
 @app.put("/audios/{audio_id}")
 async def update_audio(audio_id: str, updated_data: dict, db=Depends(get_db)):
     await db.audio.update_one({"_id": ObjectId(audio_id)}, {"$set": updated_data})
     return {"message": "Audio updated"}
 
-
+# Endpoint: Update a specific score document by ID
+# Method: PUT
+# Route: /scores/{score_id}
+# Accepts JSON with fields like player_name and score. Sanitizes input before updating.
 @app.put("/scores/{score_id}")
 async def update_score(score_id: str, updated_data: dict, db=Depends(get_db)):
     sanitized = sanitize_score_update(updated_data)
@@ -185,18 +198,28 @@ async def update_score(score_id: str, updated_data: dict, db=Depends(get_db)):
 # ----------------------------- DELETE ROUTES -----------------------------
 
 
+# Endpoint: Delete a specific sprite document by ID
+# Method: DELETE
+# Route: /sprites/{sprite_id}
+# Deletes the sprite from the 'sprites' collection
 @app.delete("/sprites/{sprite_id}")
 async def delete_sprite(sprite_id: str, db=Depends(get_db)):
     await db.sprites.delete_one({"_id": ObjectId(sprite_id)})
     return {"message": "Sprite deleted"}
 
-
+# Endpoint: Delete a specific audio document by ID
+# Method: DELETE
+# Route: /audios/{audio_id}
+# Deletes the audio file from the 'audio' collection
 @app.delete("/audios/{audio_id}")
 async def delete_audio(audio_id: str, db=Depends(get_db)):
     await db.audio.delete_one({"_id": ObjectId(audio_id)})
     return {"message": "Audio deleted"}
 
-
+# Endpoint: Delete a specific score document by ID
+# Method: DELETE
+# Route: /scores/{score_id}
+# Deletes the score record from the 'scores' collection
 @app.delete("/scores/{score_id}")
 async def delete_score(score_id: str, db=Depends(get_db)):
     await db.scores.delete_one({"_id": ObjectId(score_id)})
