@@ -182,6 +182,26 @@ async def update_score(score_id: str, updated_data: dict, db=Depends(get_db)):
     return {"message": "Score updated"}
 
 
+# ----------------------------- DELETE ROUTES -----------------------------
+
+
+@app.delete("/sprites/{sprite_id}")
+async def delete_sprite(sprite_id: str, db=Depends(get_db)):
+    await db.sprites.delete_one({"_id": ObjectId(sprite_id)})
+    return {"message": "Sprite deleted"}
+
+
+@app.delete("/audios/{audio_id}")
+async def delete_audio(audio_id: str, db=Depends(get_db)):
+    await db.audio.delete_one({"_id": ObjectId(audio_id)})
+    return {"message": "Audio deleted"}
+
+
+@app.delete("/scores/{score_id}")
+async def delete_score(score_id: str, db=Depends(get_db)):
+    await db.scores.delete_one({"_id": ObjectId(score_id)})
+    return {"message": "Score deleted"}
+
 
 # ----------------------------- TESTS TO CHECK MY CONNECTION -----------------------------
 
