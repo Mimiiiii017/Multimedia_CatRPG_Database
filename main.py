@@ -7,12 +7,23 @@ import motor.motor_asyncio # Async MongoDB client for interacting with MongoDB A
 from typing import List  # Allows defining endpoints that accept a list of inputs
 import base64 # Used to convert binary files to base64 strings for safe storage in MongoDB
 from dotenv import load_dotenv
+from bson import ObjectId
 
 # Initialize the FastAPI app
 app = FastAPI()
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path=".env")  # Explicit path
+
+# --- Helper for score sanitization ---
+def sanitize_score_update(data: dict) -> dict:
+    for key in data:
+        if "$" in key or "." in key:
+            return None
+        value = data[key]
+        if isinstance(value, str) and ("$" in value or "{" in value or "}" in value):
+            return None
+    return data
 
 # ----------------------------- MONGO DB CONNECTION -----------------------------
 
@@ -145,6 +156,30 @@ async def get_scores(db=Depends(get_db)):
         doc["_id"] = str(doc["_id"]) # Convert ObjectId
         scores.append(doc)
     return scores
+
+
+
+# ----------------------------- UPDATE ROUTES -----------------------------
+
+@app.put("/sprites/{sprite_id}")
+async def update_sprite(sprite_id: str, updated_data: dict, db=Depends(get_db)):
+    await db.sprites.update_one({"_id": ObjectId(sprite_id)}, {"$set": updated_data})
+    return {"message": "Sprite updated"}
+
+
+@app.put("/audios/{audio_id}")
+async def update_audio(audio_id: str, updated_data: dict, db=Depends(get_db)):
+    await db.audio.update_one({"_id": ObjectId(audio_id)}, {"$set": updated_data})
+    return {"message": "Audio updated"}
+
+
+@app.put("/scores/{score_id}")
+async def update_score(score_id: str, updated_data: dict, db=Depends(get_db)):
+    sanitized = sanitize_score_update(updated_data)
+    if sanitized is None:
+        return {"message": "Invalid or unsafe data"}
+    await db.scores.update_one({"_id": ObjectId(score_id)}, {"$set": sanitized})
+    return {"message": "Score updated"}
 
 
 
